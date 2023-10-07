@@ -2,19 +2,11 @@ pub mod sound;
 
 use crate::sound::make_sample;
 use eframe::egui;
-use egui::Button;
-use egui::Color32;
-use egui::Label;
-use egui::RichText;
-use egui::Stroke;
-use egui::Vec2;
+use egui::{Button, Color32, Label, RichText, Stroke, Vec2};
 use fon::{chan::Ch16, Audio};
 use num_integer::Roots;
-use rand::prelude::*;
-use rand::thread_rng;
-use rodio::buffer::SamplesBuffer;
-use rodio::OutputStream;
-use rodio::OutputStreamHandle;
+use rand::{prelude::*, thread_rng};
+use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle};
 use sound::Chord;
 
 fn main() -> Result<(), eframe::Error> {
@@ -32,6 +24,29 @@ fn main() -> Result<(), eframe::Error> {
 struct Card {
     chord: Chord,
     sample: Audio<Ch16, 2>,
+}
+
+const BTN_SIZE: Vec2 = Vec2::new(100., 100.);
+
+impl Card {
+    /// Returns clicked
+    fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
+        let open = *state == CardState::FaceUp;
+        ui.add(
+            Button::new(if open { "o" } else { "?" })
+                .min_size(BTN_SIZE)
+                .stroke(Stroke::new(
+                    2.,
+                    if open {
+                        Color32::LIGHT_GREEN
+                    } else {
+                        Color32::LIGHT_RED
+                    },
+                ))
+                .fill(Color32::DARK_GRAY),
+        )
+        .clicked()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -104,29 +119,17 @@ impl eframe::App for MyApp {
             ui.vertical(|ui| {
                 for row in &mut self.cards.chunks_mut(card_count.sqrt() + 1) {
                     ui.horizontal(|ui| {
-                        for (card, state) in row {
+                        for (card_opt, state) in row {
                             let open = *state == CardState::FaceUp;
-                            if let Some(card) = card {
-                                if ui
-                                    .add(
-                                        Button::new(if open { "o" } else { "?" })
-                                            .min_size(Vec2::new(100., 100.))
-                                            .stroke(Stroke::new(
-                                                2.,
-                                                if open {
-                                                    Color32::LIGHT_GREEN
-                                                } else {
-                                                    Color32::LIGHT_RED
-                                                },
-                                            ))
-                                            .fill(Color32::DARK_GRAY),
-                                    )
-                                    .clicked()
-                                    && !open
-                                {
+                            if let Some(card) = card_opt {
+                                // If button was pressed and it was not already face up
+                                if card.button_ui(state, ui) && !open {
+                                    // Play sound
                                     let buf =
                                         SamplesBuffer::new(2, 48_000, card.sample.as_i16_slice());
                                     self.audio_sink.append(buf);
+
+                                    // This is the second guess
                                     if let Some(first_chord) = &first_chord {
                                         // Guess right
                                         if first_chord == &card.chord
