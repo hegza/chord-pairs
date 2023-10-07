@@ -55,16 +55,92 @@ enum CardState {
     FaceUp,
 }
 
-struct MyApp {
+struct AudioPlayer {
+    sink: rodio::Sink,
+    _handle: OutputStreamHandle,
+    _stream: OutputStream,
+}
+
+struct Board {
     cards: Vec<(Option<Card>, CardState)>,
-    audio_sink: rodio::Sink,
     first_guess: Option<usize>,
-    _audio_handle: OutputStreamHandle,
-    _audio_stream: OutputStream,
     wrong_guess_count: usize,
 }
 
-impl Default for MyApp {
+impl Board {
+    fn ui(&mut self, ui: &mut egui::Ui, audio: &mut AudioPlayer) {
+        let card_count = self.cards.len();
+        let first_chord = if let Some(first_guess) = self.first_guess {
+            if let Some(first_card) = &self.cards[first_guess].0 {
+                Some(first_card.chord.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        let mut close_first = false;
+
+        let mut cur_idx = 0;
+
+        ui.vertical(|ui| {
+            for row in &mut self.cards.chunks_mut(card_count.sqrt() + 1) {
+                ui.horizontal(|ui| {
+                    for (card_opt, state) in row {
+                        let open = *state == CardState::FaceUp;
+                        if let Some(card) = card_opt {
+                            // If button was pressed and it was not already face up
+                            if card.button_ui(state, ui) && !open {
+                                // Play sound
+                                let buf = SamplesBuffer::new(2, 48_000, card.sample.as_i16_slice());
+                                audio.sink.append(buf);
+
+                                // This is the second guess
+                                if let Some(first_chord) = &first_chord {
+                                    // Guess right
+                                    if first_chord == &card.chord
+                                        && self.first_guess != Some(cur_idx)
+                                    {
+                                        // Set also this one as opened
+                                        *state = CardState::FaceUp;
+                                        self.first_guess = None;
+                                    }
+                                    // Wrong guess
+                                    else {
+                                        // Close both
+                                        *state = CardState::FaceDown;
+                                        close_first = true;
+                                        self.wrong_guess_count += 1;
+                                    }
+                                }
+                                // This is the first guess, set current as open
+                                else {
+                                    *state = CardState::FaceUp;
+                                    self.first_guess = Some(cur_idx);
+                                }
+                            }
+                        }
+                        cur_idx += 1;
+                    }
+                });
+            }
+            ui.add(Label::new(
+                RichText::new(format!(
+                    "Number of wrong guesses: {}",
+                    self.wrong_guess_count
+                ))
+                .size(32.),
+            ));
+        });
+
+        if close_first {
+            *(&mut self.cards[self.first_guess.unwrap()].1) = CardState::FaceDown;
+            self.first_guess = None;
+        }
+    }
+}
+
+impl Default for Board {
     fn default() -> Self {
         use sound::Chord as C;
         let all_chords = [
@@ -86,91 +162,39 @@ impl Default for MyApp {
             .collect::<Vec<_>>();
         cards.shuffle(&mut thread_rng());
 
-        let (audio_stream, audio_handle) = rodio::OutputStream::try_default().unwrap();
-        let sink = rodio::Sink::try_new(&audio_handle).unwrap();
-
         Self {
             cards,
-            audio_sink: sink,
-            _audio_handle: audio_handle,
-            _audio_stream: audio_stream,
             first_guess: None,
             wrong_guess_count: 0,
         }
     }
 }
 
+struct MyApp {
+    board: Board,
+    audio: AudioPlayer,
+}
+
+impl Default for MyApp {
+    fn default() -> Self {
+        let (audio_stream, audio_handle) = rodio::OutputStream::try_default().unwrap();
+        let sink = rodio::Sink::try_new(&audio_handle).unwrap();
+
+        let audio = AudioPlayer {
+            sink,
+            _handle: audio_handle,
+            _stream: audio_stream,
+        };
+
+        let board = Board::default();
+        Self { board, audio }
+    }
+}
+
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let card_count = self.cards.len();
-        let first_chord = if let Some(first_guess) = self.first_guess {
-            if let Some(first_card) = &self.cards[first_guess].0 {
-                Some(first_card.chord.clone())
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let mut close_first = false;
-
-        let mut cur_idx = 0;
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical(|ui| {
-                for row in &mut self.cards.chunks_mut(card_count.sqrt() + 1) {
-                    ui.horizontal(|ui| {
-                        for (card_opt, state) in row {
-                            let open = *state == CardState::FaceUp;
-                            if let Some(card) = card_opt {
-                                // If button was pressed and it was not already face up
-                                if card.button_ui(state, ui) && !open {
-                                    // Play sound
-                                    let buf =
-                                        SamplesBuffer::new(2, 48_000, card.sample.as_i16_slice());
-                                    self.audio_sink.append(buf);
-
-                                    // This is the second guess
-                                    if let Some(first_chord) = &first_chord {
-                                        // Guess right
-                                        if first_chord == &card.chord
-                                            && self.first_guess != Some(cur_idx)
-                                        {
-                                            // Set also this one as opened
-                                            *state = CardState::FaceUp;
-                                            self.first_guess = None;
-                                        }
-                                        // Wrong guess
-                                        else {
-                                            // Close both
-                                            *state = CardState::FaceDown;
-                                            close_first = true;
-                                            self.wrong_guess_count += 1;
-                                        }
-                                    }
-                                    // This is the first guess, set current as open
-                                    else {
-                                        *state = CardState::FaceUp;
-                                        self.first_guess = Some(cur_idx);
-                                    }
-                                }
-                            }
-                            cur_idx += 1;
-                        }
-                    });
-                }
-                ui.add(Label::new(
-                    RichText::new(format!(
-                        "Number of wrong guesses: {}",
-                        self.wrong_guess_count
-                    ))
-                    .size(32.),
-                ));
-            });
+            self.board.ui(ui, &mut self.audio);
         });
-
-        if close_first {
-            *(&mut self.cards[self.first_guess.unwrap()].1) = CardState::FaceDown;
-            self.first_guess = None;
-        }
     }
 }
