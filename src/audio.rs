@@ -1,5 +1,7 @@
 use fon::chan::Ch16;
 use fon::{Audio, Frame};
+use rodio::buffer::SamplesBuffer;
+use rodio::{OutputStream, OutputStreamHandle};
 use twang::noise::White;
 use twang::ops::Gain;
 use twang::osc::Sine;
@@ -74,4 +76,29 @@ pub fn make_sample(chord: Chord, len_ms: usize) -> Audio<Ch16, 2> {
     synth.stream(audio.sink());
 
     audio
+}
+
+pub struct AudioPlayer {
+    sink: rodio::Sink,
+    _handle: OutputStreamHandle,
+    _stream: OutputStream,
+}
+
+impl AudioPlayer {
+    pub fn play_sample(&mut self, sample: &mut Audio<Ch16, 2>) {
+        let buf = SamplesBuffer::new(2, 48_000, sample.as_i16_slice());
+        self.sink.append(buf);
+    }
+}
+
+impl Default for AudioPlayer {
+    fn default() -> Self {
+        let (_stream, _handle) = rodio::OutputStream::try_default().unwrap();
+        let sink = rodio::Sink::try_new(&_handle).unwrap();
+        Self {
+            sink,
+            _handle,
+            _stream,
+        }
+    }
 }

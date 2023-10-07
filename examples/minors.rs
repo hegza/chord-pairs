@@ -1,5 +1,5 @@
 use rodio::buffer::SamplesBuffer;
-use sounds::sound::{make_sample, Chord};
+use sounds::audio::{make_sample, Chord};
 
 fn main() {
     let (_stream, handle) = rodio::OutputStream::try_default().unwrap();
