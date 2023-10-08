@@ -32,6 +32,7 @@ pub enum Note {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum ChordKind {
     Minor,
+    Major,
 }
 
 impl Note {
@@ -81,6 +82,7 @@ impl fmt::Display for Chord {
         }
         match self.kind {
             ChordKind::Minor => write!(f, " minor"),
+            ChordKind::Major => write!(f, ""),
         }
     }
 }
@@ -104,6 +106,9 @@ pub fn get_chord(note: Note, chord_kind: ChordKind) -> [f32; 3] {
     };
     match chord_kind {
         ChordKind::Minor => [base, base * 32.0 / 27.0, base * 3.0 / 2.0],
+        // Major should be formed of the major third and the perfect fifth above base frequency
+        // TODO: what should the third be?
+        ChordKind::Major => [base, base * 3.0 / 2.0, base],
     }
 }
 
