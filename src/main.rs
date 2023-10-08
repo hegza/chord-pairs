@@ -12,7 +12,7 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
     eframe::run_native(
-        env!("CARGO_CRATE_NAME"),
+        "Chord Pairs",
         options,
         Box::new(|_cc| Box::<MyApp>::default()),
     )
