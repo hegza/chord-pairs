@@ -1,8 +1,12 @@
-use crate::{audio::ChordPlayer, samples::Chord};
+use crate::{
+    audio::ChordPlayer,
+    samples::{Chord, ChordKind, Note},
+};
 use eframe::egui;
 use egui::{Button, Color32, Label, RichText, Stroke, Vec2};
 use num_integer::Roots;
 use rand::{seq::SliceRandom, thread_rng};
+use strum::IntoEnumIterator;
 
 pub struct Card {
     chord: Chord,
@@ -66,23 +70,12 @@ pub enum PlayerAction {
 
 impl Default for Board {
     fn default() -> Self {
-        use crate::samples::Chord as C;
-        let all_chords = [
-            C::C3Minor,
-            C::D3Minor,
-            C::E3Minor,
-            C::F3Minor,
-            C::G3Minor,
-            C::A3Minor,
-            C::B3Minor,
-            C::C4Minor,
-            C::D4Minor,
-            C::E4Minor,
-            C::F4Minor,
-            C::G4Minor,
-            C::B4Minor,
-            C::A4Minor,
-        ];
+        let all_chords = Note::iter()
+            .map(|note| Chord {
+                basenote: note,
+                kind: ChordKind::Minor,
+            })
+            .collect::<Vec<_>>();
         let all_chords_twice = all_chords.iter().cycle().take(all_chords.len() * 2);
         let mut cards = all_chords_twice
             .map(|chord| Card {

@@ -1,6 +1,7 @@
 use std::fmt;
 
 use fon::{chan::Ch16, Audio, Frame};
+use strum::EnumIter;
 use twang::{noise::White, ops::Gain, osc::Sine, Synth};
 
 /// First ten harmonic volumes of a piano sample (sounds like electric piano).
@@ -10,63 +11,100 @@ const HARMONICS: [f32; 10] = [
 /// Volume of the piano
 const VOLUME: f32 = 1.0 / 3.0;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Chord {
-    C3Minor,
-    D3Minor,
-    E3Minor,
-    F3Minor,
-    G3Minor,
-    A3Minor,
-    B3Minor,
-    C4Minor,
-    D4Minor,
-    E4Minor,
-    F4Minor,
-    G4Minor,
-    A4Minor,
-    B4Minor,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
+pub enum Note {
+    C3,
+    D3,
+    E3,
+    F3,
+    G3,
+    A3,
+    B3,
+    C4,
+    D4,
+    E4,
+    F4,
+    G4,
+    A4,
+    B4,
 }
 
-impl fmt::Display for Chord {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
+pub enum ChordKind {
+    Minor,
+}
+
+impl Note {
+    pub fn freq(&self) -> f64 {
         match self {
-            Chord::C3Minor => write!(f, "C3 minor"),
-            Chord::D3Minor => write!(f, "D3 minor"),
-            Chord::E3Minor => write!(f, "E3 minor"),
-            Chord::F3Minor => write!(f, "F3 minor"),
-            Chord::G3Minor => write!(f, "G3 minor"),
-            Chord::A3Minor => write!(f, "A3 minor"),
-            Chord::B3Minor => write!(f, "B3 minor"),
-            Chord::C4Minor => write!(f, "C4 minor"),
-            Chord::D4Minor => write!(f, "D4 minor"),
-            Chord::E4Minor => write!(f, "E4 minor"),
-            Chord::F4Minor => write!(f, "F4 minor"),
-            Chord::G4Minor => write!(f, "G4 minor"),
-            Chord::A4Minor => write!(f, "A4 minor"),
-            Chord::B4Minor => write!(f, "B4 minor"),
+            Note::C3 => 130.81,
+            Note::D3 => 146.83,
+            Note::E3 => 164.81,
+            Note::F3 => 174.61,
+            Note::G3 => 196.,
+            Note::A3 => 220.,
+            Note::B3 => 246.94,
+            Note::C4 => 261.,
+            Note::D4 => 294.,
+            Note::E4 => 329.,
+            Note::F4 => 349.,
+            Note::G4 => 392.,
+            Note::A4 => 440.,
+            Note::B4 => 493.,
         }
     }
 }
 
-pub fn pitches(chord: Chord) -> [f32; 3] {
-    let base = match chord {
-        Chord::C3Minor => 130.81,
-        Chord::D3Minor => 146.83,
-        Chord::E3Minor => 164.81,
-        Chord::F3Minor => 174.61,
-        Chord::G3Minor => 196.,
-        Chord::A3Minor => 220.,
-        Chord::B3Minor => 246.94,
-        Chord::C4Minor => 261.,
-        Chord::D4Minor => 294.,
-        Chord::E4Minor => 329.,
-        Chord::F4Minor => 349.,
-        Chord::G4Minor => 392.,
-        Chord::A4Minor => 440.,
-        Chord::B4Minor => 493.,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Chord {
+    pub basenote: Note,
+    pub kind: ChordKind,
+}
+
+impl fmt::Display for Chord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.basenote {
+            Note::C3 => write!(f, "C3")?,
+            Note::D3 => write!(f, "D3")?,
+            Note::E3 => write!(f, "E3")?,
+            Note::F3 => write!(f, "F3")?,
+            Note::G3 => write!(f, "G3")?,
+            Note::A3 => write!(f, "A3")?,
+            Note::B3 => write!(f, "B3")?,
+            Note::C4 => write!(f, "C4")?,
+            Note::D4 => write!(f, "D4")?,
+            Note::E4 => write!(f, "E4")?,
+            Note::F4 => write!(f, "F4")?,
+            Note::G4 => write!(f, "G4")?,
+            Note::A4 => write!(f, "A4")?,
+            Note::B4 => write!(f, "B4")?,
+        }
+        match self.kind {
+            ChordKind::Minor => write!(f, " minor"),
+        }
+    }
+}
+
+pub fn get_chord(note: Note, chord_kind: ChordKind) -> [f32; 3] {
+    let base = match note {
+        Note::C3 => 130.81,
+        Note::D3 => 146.83,
+        Note::E3 => 164.81,
+        Note::F3 => 174.61,
+        Note::G3 => 196.,
+        Note::A3 => 220.,
+        Note::B3 => 246.94,
+        Note::C4 => 261.,
+        Note::D4 => 294.,
+        Note::E4 => 329.,
+        Note::F4 => 349.,
+        Note::G4 => 392.,
+        Note::A4 => 440.,
+        Note::B4 => 493.,
     };
-    [base, base * 32.0 / 27.0, base * 3.0 / 2.0]
+    match chord_kind {
+        ChordKind::Minor => [base, base * 32.0 / 27.0, base * 3.0 / 2.0],
+    }
 }
 
 // State of the synthesizer.
@@ -79,6 +117,8 @@ struct Processors {
 }
 
 pub fn make_sample(chord: Chord, len_ms: usize) -> Audio<Ch16, 2> {
+    let Chord { basenote, kind } = chord;
+
     // Initialize audio
     let mut audio = Audio::<Ch16, 2>::with_silence(48_000, 48 * len_ms);
     // Create audio processors
@@ -92,7 +132,11 @@ pub fn make_sample(chord: Chord, len_ms: usize) -> Audio<Ch16, 2> {
 
     // Build synthesis algorithm
     let mut synth = Synth::new(proc, move |proc, mut frame: Frame<_, 2>| {
-        for (s, pitch) in proc.piano.iter_mut().zip(pitches(chord.clone()).iter()) {
+        for (s, pitch) in proc
+            .piano
+            .iter_mut()
+            .zip(get_chord(basenote.clone(), kind.clone()).iter())
+        {
             for ((i, o), v) in s.iter_mut().enumerate().zip(HARMONICS.iter()) {
                 // Get next sample from oscillator.
                 let sample = o.step(pitch * (i + 1) as f32);

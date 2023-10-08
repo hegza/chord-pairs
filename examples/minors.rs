@@ -1,5 +1,6 @@
-use chord_pairs::samples::{make_sample, Chord};
+use chord_pairs::samples::{make_sample, Chord, ChordKind, Note};
 use rodio::buffer::SamplesBuffer;
+use strum::IntoEnumIterator;
 
 fn main() {
     let (_stream, handle) = rodio::OutputStream::try_default().unwrap();
@@ -7,18 +8,12 @@ fn main() {
 
     loop {
         // Initialize audio
-        use Chord as C;
-        let mut samples = [
-            C::C3Minor,
-            C::D3Minor,
-            C::E3Minor,
-            C::F3Minor,
-            C::G3Minor,
-            C::A3Minor,
-            C::B3Minor,
-        ]
-        .into_iter()
-        .map(|ch| make_sample(ch, 100));
+        let mut samples = Note::iter()
+            .map(|note| Chord {
+                basenote: note,
+                kind: ChordKind::Minor,
+            })
+            .map(|ch| make_sample(ch, 100));
 
         // Play all samples
         for mut sample in &mut samples {

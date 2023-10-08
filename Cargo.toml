@@ -12,4 +12,5 @@ fon = "0.6.0"
 num-integer = "0.1.45"
 rand = "0.8.5"
 rodio = "0.17.1"
+strum = { version = "0.25.0", features = ["derive"] }
 twang = "0.9.0"
