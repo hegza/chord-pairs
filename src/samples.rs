@@ -11,7 +11,7 @@ const HARMONICS: [f32; 10] = [
 /// Volume of the piano
 const VOLUME: f32 = 1.0 / 3.0;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, EnumIter, strum::Display)]
 pub enum Note {
     C3,
     D3,
@@ -64,22 +64,7 @@ pub struct Chord {
 
 impl fmt::Display for Chord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.basenote {
-            Note::C3 => write!(f, "C3")?,
-            Note::D3 => write!(f, "D3")?,
-            Note::E3 => write!(f, "E3")?,
-            Note::F3 => write!(f, "F3")?,
-            Note::G3 => write!(f, "G3")?,
-            Note::A3 => write!(f, "A3")?,
-            Note::B3 => write!(f, "B3")?,
-            Note::C4 => write!(f, "C4")?,
-            Note::D4 => write!(f, "D4")?,
-            Note::E4 => write!(f, "E4")?,
-            Note::F4 => write!(f, "F4")?,
-            Note::G4 => write!(f, "G4")?,
-            Note::A4 => write!(f, "A4")?,
-            Note::B4 => write!(f, "B4")?,
-        }
+        write!(f, "{}", self.basenote)?;
         match self.kind {
             ChordKind::Minor => write!(f, " minor"),
             ChordKind::Major => write!(f, ""),
