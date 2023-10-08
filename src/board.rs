@@ -154,10 +154,9 @@ impl Board {
             for (row_idx, row) in self.cards.chunks(row_len).enumerate() {
                 ui.horizontal(|ui| {
                     for (col_idx, (card_opt, state)) in row.iter().enumerate() {
-                        let open = *state == CardState::FaceUp;
                         if let Some(card) = card_opt {
-                            // If button was pressed and it was not already face up
-                            if card.button_ui(state, ui) && !open {
+                            // If button was pressed and it was not already face up or revealed
+                            if card.button_ui(state, ui) && state == &CardState::FaceDown {
                                 let cur_idx = row_idx * row_len + col_idx;
                                 action = Some(PlayerAction::LookAt(cur_idx));
                             }
