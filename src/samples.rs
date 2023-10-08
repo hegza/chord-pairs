@@ -1,9 +1,7 @@
-use fon::chan::Ch16;
-use fon::{Audio, Frame};
-use twang::noise::White;
-use twang::ops::Gain;
-use twang::osc::Sine;
-use twang::Synth;
+use std::fmt;
+
+use fon::{chan::Ch16, Audio, Frame};
+use twang::{noise::White, ops::Gain, osc::Sine, Synth};
 
 /// First ten harmonic volumes of a piano sample (sounds like electric piano).
 const HARMONICS: [f32; 10] = [
@@ -28,6 +26,27 @@ pub enum Chord {
     G4,
     A4,
     B4,
+}
+
+impl fmt::Display for Chord {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Chord::C3Minor => write!(f, "C3 minor"),
+            Chord::D3Minor => write!(f, "D3 minor"),
+            Chord::E3Minor => write!(f, "E3 minor"),
+            Chord::F3Minor => write!(f, "F3 minor"),
+            Chord::G3Minor => write!(f, "G3 minor"),
+            Chord::A3Minor => write!(f, "A3 minor"),
+            Chord::B3Minor => write!(f, "B3 minor"),
+            Chord::C4 => write!(f, "C4"),
+            Chord::D4 => write!(f, "D4"),
+            Chord::E4 => write!(f, "E4"),
+            Chord::F4 => write!(f, "F4"),
+            Chord::G4 => write!(f, "G4"),
+            Chord::A4 => write!(f, "A4"),
+            Chord::B4 => write!(f, "B4"),
+        }
+    }
 }
 
 pub fn pitches(chord: Chord) -> [f32; 3] {

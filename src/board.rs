@@ -13,18 +13,20 @@ const BTN_SIZE: Vec2 = Vec2::new(100., 100.);
 impl Card {
     /// Returns clicked
     fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
-        let open = *state == CardState::FaceUp;
+        let text = match state {
+            CardState::FaceDown => "?".to_owned(),
+            CardState::FaceUp => "o".to_owned(),
+            CardState::Revealed => format!("{}", self.chord),
+        };
+        let color = match state {
+            CardState::FaceDown => Color32::LIGHT_RED,
+            CardState::FaceUp => Color32::LIGHT_BLUE,
+            CardState::Revealed => Color32::LIGHT_GREEN,
+        };
         ui.add(
-            Button::new(if open { "o" } else { "?" })
+            Button::new(text)
                 .min_size(BTN_SIZE)
-                .stroke(Stroke::new(
-                    2.,
-                    if open {
-                        Color32::LIGHT_GREEN
-                    } else {
-                        Color32::LIGHT_RED
-                    },
-                ))
+                .stroke(Stroke::new(2., color))
                 .fill(Color32::DARK_GRAY),
         )
         .clicked()
@@ -35,6 +37,8 @@ impl Card {
 enum CardState {
     FaceDown,
     FaceUp,
+    /// Also show chord
+    Revealed,
 }
 
 pub struct Board {
@@ -118,8 +122,9 @@ impl Board {
                                     if &first_card.chord == &card.chord
                                         && self.guess_state != GuessState::One(card_idx)
                                     {
-                                        // Set also this one as opened
-                                        self.cards[card_idx].1 = CardState::FaceUp;
+                                        // Set both as revealed
+                                        self.cards[card_idx].1 = CardState::Revealed;
+                                        self.cards[first_guess_idx].1 = CardState::Revealed;
                                     }
                                     // Wrong guess
                                     else {
