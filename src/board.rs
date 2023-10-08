@@ -1,20 +1,18 @@
-use crate::audio::{make_sample, AudioPlayer, Chord};
+use crate::{audio::ChordPlayer, samples::Chord};
 use eframe::egui;
 use egui::{Button, Color32, Label, RichText, Stroke, Vec2};
-use fon::{chan::Ch16, Audio};
 use num_integer::Roots;
-use rand::{prelude::*, thread_rng};
+use rand::{seq::SliceRandom, thread_rng};
 
 pub struct Card {
     chord: Chord,
-    sample: Audio<Ch16, 2>,
 }
 
 const BTN_SIZE: Vec2 = Vec2::new(100., 100.);
 
 impl Card {
     /// Returns clicked
-    pub fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
+    fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
         let open = *state == CardState::FaceUp;
         ui.add(
             Button::new(if open { "o" } else { "?" })
@@ -34,70 +32,134 @@ impl Card {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum CardState {
+enum CardState {
     FaceDown,
     FaceUp,
 }
 
 pub struct Board {
     cards: Vec<(Option<Card>, CardState)>,
-    first_guess: Option<usize>,
+    guess_state: GuessState,
     wrong_guess_count: usize,
 }
 
-impl Board {
-    pub fn ui(&mut self, ui: &mut egui::Ui, audio: &mut AudioPlayer) {
-        let card_count = self.cards.len();
-        let first_chord = if let Some(first_guess) = self.first_guess {
-            if let Some(first_card) = &self.cards[first_guess].0 {
-                Some(first_card.chord.clone())
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-        let mut close_first = false;
+/// How many, and which cards are currently turned over by the player
+#[derive(Debug, PartialEq, Eq)]
+enum GuessState {
+    /// None guessed
+    None,
+    /// One guessed
+    One(usize),
+    /*
+    /// Two guessed
+    Two(usize, usize),
+    */
+}
 
-        let mut cur_idx = 0;
+pub enum PlayerAction {
+    LookAt(usize),
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        use crate::samples::Chord as C;
+        let all_chords = [
+            C::C3Minor,
+            C::D3Minor,
+            C::E3Minor,
+            C::F3Minor,
+            C::G3Minor,
+            C::A3Minor,
+            C::B3Minor,
+            C::C4,
+            C::D4,
+            C::E4,
+            C::F4,
+            C::G4,
+            C::B4,
+            C::A4,
+        ];
+        let all_chords_twice = all_chords.iter().cycle().take(all_chords.len() * 2);
+        let mut cards = all_chords_twice
+            .map(|chord| Card {
+                chord: chord.clone(),
+            })
+            .map(|x| (Some(x), CardState::FaceDown))
+            .collect::<Vec<_>>();
+        cards.shuffle(&mut thread_rng());
+
+        Self {
+            cards,
+            wrong_guess_count: 0,
+            guess_state: GuessState::None,
+        }
+    }
+}
+
+impl Board {
+    pub fn update(&mut self, ui: &mut egui::Ui, audio: &ChordPlayer) {
+        if let Some(action) = self.ui(ui) {
+            match action {
+                PlayerAction::LookAt(card_idx) => {
+                    if let Some(card) = &self.cards[card_idx].0 {
+                        // Play sound
+                        audio.play_chord(&card.chord);
+
+                        match self.guess_state {
+                            // This is the first guess, set current as open
+                            GuessState::None => {
+                                self.cards[card_idx].1 = CardState::FaceUp;
+                                self.guess_state = GuessState::One(card_idx);
+                            }
+                            // This is the second guess
+                            GuessState::One(first_guess_idx) => {
+                                if let Some(first_card) = &self.cards[first_guess_idx].0 {
+                                    // Guess right
+                                    if &first_card.chord == &card.chord
+                                        && self.guess_state != GuessState::One(card_idx)
+                                    {
+                                        // Set also this one as opened
+                                        self.cards[card_idx].1 = CardState::FaceUp;
+                                    }
+                                    // Wrong guess
+                                    else {
+                                        // Close both and add one to wrong guess count
+                                        self.cards[card_idx].1 = CardState::FaceDown;
+                                        self.cards[first_guess_idx].1 = CardState::FaceDown;
+                                        self.wrong_guess_count += 1;
+                                    }
+                                    self.guess_state = GuessState::None;
+                                }
+                            }
+                        }
+                    } else {
+                        eprintln!(
+                            "player tried to look at card {} which didn't exist",
+                            card_idx
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    fn ui(&self, ui: &mut egui::Ui) -> Option<PlayerAction> {
+        let card_count = self.cards.len();
+        let mut action = None;
 
         ui.vertical(|ui| {
-            for row in &mut self.cards.chunks_mut(card_count.sqrt() + 1) {
+            let row_len = card_count.sqrt() + 1;
+            for (row_idx, row) in self.cards.chunks(row_len).enumerate() {
                 ui.horizontal(|ui| {
-                    for (card_opt, state) in row {
+                    for (col_idx, (card_opt, state)) in row.iter().enumerate() {
                         let open = *state == CardState::FaceUp;
                         if let Some(card) = card_opt {
                             // If button was pressed and it was not already face up
                             if card.button_ui(state, ui) && !open {
-                                // Play sound
-                                audio.play_sample(&mut card.sample);
-
-                                // This is the second guess
-                                if let Some(first_chord) = &first_chord {
-                                    // Guess right
-                                    if first_chord == &card.chord
-                                        && self.first_guess != Some(cur_idx)
-                                    {
-                                        // Set also this one as opened
-                                        *state = CardState::FaceUp;
-                                        self.first_guess = None;
-                                    }
-                                    // Wrong guess
-                                    else {
-                                        // Close both
-                                        *state = CardState::FaceDown;
-                                        close_first = true;
-                                        self.wrong_guess_count += 1;
-                                    }
-                                }
-                                // This is the first guess, set current as open
-                                else {
-                                    *state = CardState::FaceUp;
-                                    self.first_guess = Some(cur_idx);
-                                }
+                                let cur_idx = row_idx * row_len + col_idx;
+                                action = Some(PlayerAction::LookAt(cur_idx));
                             }
                         }
-                        cur_idx += 1;
                     }
                 });
             }
@@ -110,39 +172,14 @@ impl Board {
             ));
         });
 
-        if close_first {
-            *(&mut self.cards[self.first_guess.unwrap()].1) = CardState::FaceDown;
-            self.first_guess = None;
-        }
+        action
     }
-}
 
-impl Default for Board {
-    fn default() -> Self {
-        use crate::audio::Chord as C;
-        let all_chords = [
-            C::C3Minor,
-            C::D3Minor,
-            C::E3Minor,
-            C::F3Minor,
-            C::G3Minor,
-            C::A3Minor,
-            C::B3Minor,
-        ];
-        let mut cards = all_chords
+    pub fn chords(&self) -> Vec<Chord> {
+        self.cards
             .iter()
-            .cycle()
-            .take(all_chords.len() * 2)
-            .map(|chord| (chord.clone(), make_sample(chord.clone(), 500)))
-            .map(|(chord, sample)| Card { sample, chord })
-            .map(|x| (Some(x), CardState::FaceDown))
-            .collect::<Vec<_>>();
-        cards.shuffle(&mut thread_rng());
-
-        Self {
-            cards,
-            first_guess: None,
-            wrong_guess_count: 0,
-        }
+            .filter_map(|card| card.0.as_ref())
+            .map(|card| card.chord.clone())
+            .collect()
     }
 }

@@ -1,104 +1,48 @@
-use fon::chan::Ch16;
-use fon::{Audio, Frame};
-use rodio::buffer::SamplesBuffer;
-use rodio::{OutputStream, OutputStreamHandle};
-use twang::noise::White;
-use twang::ops::Gain;
-use twang::osc::Sine;
-use twang::Synth;
+use std::collections::HashMap;
 
-/// First ten harmonic volumes of a piano sample (sounds like electric piano).
-const HARMONICS: [f32; 10] = [
-    0.700, 0.243, 0.229, 0.095, 0.139, 0.087, 0.288, 0.199, 0.124, 0.090,
-];
-/// Volume of the piano
-const VOLUME: f32 = 1.0 / 3.0;
+use crate::samples::{make_sample, Chord};
+use fon::{chan::Ch16, Audio};
+use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle};
 
-#[derive(Clone, PartialEq)]
-pub enum Chord {
-    C3Minor,
-    D3Minor,
-    E3Minor,
-    F3Minor,
-    G3Minor,
-    A3Minor,
-    B3Minor,
-}
+pub const GLOBAL_MUTE: bool = false;
 
-pub fn pitches(chord: Chord) -> [f32; 3] {
-    let base = match chord {
-        Chord::C3Minor => 130.81,
-        Chord::D3Minor => 146.83,
-        Chord::E3Minor => 164.81,
-        Chord::F3Minor => 174.61,
-        Chord::G3Minor => 196.,
-        Chord::A3Minor => 220.,
-        Chord::B3Minor => 246.94,
-    };
-    [base, base * 32.0 / 27.0, base * 3.0 / 2.0]
-}
-
-// State of the synthesizer.
-#[derive(Default)]
-struct Processors {
-    // White noise generator.
-    white: White,
-    // 10 harmonics for 3 pitches.
-    piano: [[Sine; 10]; 3],
-}
-
-pub fn make_sample(chord: Chord, len_ms: usize) -> Audio<Ch16, 2> {
-    // Initialize audio
-    let mut audio = Audio::<Ch16, 2>::with_silence(48_000, 48 * len_ms);
-    // Create audio processors
-    let mut proc = Processors::default();
-    // Adjust phases of harmonics.
-    for pitch in proc.piano.iter_mut() {
-        for harmonic in pitch.iter_mut() {
-            harmonic.shift(proc.white.step());
-        }
-    }
-
-    // Build synthesis algorithm
-    let mut synth = Synth::new(proc, move |proc, mut frame: Frame<_, 2>| {
-        for (s, pitch) in proc.piano.iter_mut().zip(pitches(chord.clone()).iter()) {
-            for ((i, o), v) in s.iter_mut().enumerate().zip(HARMONICS.iter()) {
-                // Get next sample from oscillator.
-                let sample = o.step(pitch * (i + 1) as f32);
-                // Pan the generated harmonic center
-                frame = frame.pan(Gain.step(sample, (v * VOLUME).into()), 0.0);
-            }
-        }
-        frame
-    });
-
-    // Synthesize 5 seconds of audio
-    synth.stream(audio.sink());
-
-    audio
-}
-
-pub struct AudioPlayer {
+pub struct ChordPlayer {
     sink: rodio::Sink,
     _handle: OutputStreamHandle,
     _stream: OutputStream,
+    chords: HashMap<Chord, Audio<Ch16, 2>>,
 }
 
-impl AudioPlayer {
-    pub fn play_sample(&mut self, sample: &mut Audio<Ch16, 2>) {
-        let buf = SamplesBuffer::new(2, 48_000, sample.as_i16_slice());
-        self.sink.append(buf);
-    }
-}
-
-impl Default for AudioPlayer {
-    fn default() -> Self {
+impl ChordPlayer {
+    pub fn from_chords(chords: impl Iterator<Item = Chord>) -> Self {
         let (_stream, _handle) = rodio::OutputStream::try_default().unwrap();
         let sink = rodio::Sink::try_new(&_handle).unwrap();
+
+        let chords = chords
+            .map(|chord| (chord.clone(), make_sample(chord, 500)))
+            .collect();
+
         Self {
             sink,
             _handle,
             _stream,
+            chords,
+        }
+    }
+
+    pub fn play_chord(&self, chord: &Chord) {
+        let sample = self.chords.get(chord).expect(&format!(
+            "chord {:?} not registered with chord player",
+            chord
+        ));
+        let mut nsample = Audio::<Ch16, 2>::with_audio::<Ch16, 2>(48_000, sample);
+        self.play_sample(&mut nsample);
+    }
+
+    fn play_sample(&self, sample: &mut Audio<Ch16, 2>) {
+        if !GLOBAL_MUTE {
+            let buf = SamplesBuffer::new(2, 48_000, sample.as_i16_slice());
+            self.sink.append(buf);
         }
     }
 }

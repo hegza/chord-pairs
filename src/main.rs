@@ -1,7 +1,8 @@
 pub mod audio;
 pub mod board;
+pub mod samples;
 
-use audio::AudioPlayer;
+use audio::ChordPlayer;
 use board::Board;
 use eframe::egui;
 
@@ -19,14 +20,14 @@ fn main() -> Result<(), eframe::Error> {
 
 struct MyApp {
     board: Board,
-    audio: AudioPlayer,
+    audio: ChordPlayer,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let audio = AudioPlayer::default();
-
         let board = Board::default();
+        let audio = ChordPlayer::from_chords(board.chords().into_iter());
+
         Self { board, audio }
     }
 }
@@ -34,7 +35,7 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.board.ui(ui, &mut self.audio);
+            self.board.update(ui, &self.audio);
         });
     }
 }
