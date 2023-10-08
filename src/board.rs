@@ -75,13 +75,13 @@ impl Default for Board {
             C::G3Minor,
             C::A3Minor,
             C::B3Minor,
-            C::C4,
-            C::D4,
-            C::E4,
-            C::F4,
-            C::G4,
-            C::B4,
-            C::A4,
+            C::C4Minor,
+            C::D4Minor,
+            C::E4Minor,
+            C::F4Minor,
+            C::G4Minor,
+            C::B4Minor,
+            C::A4Minor,
         ];
         let all_chords_twice = all_chords.iter().cycle().take(all_chords.len() * 2);
         let mut cards = all_chords_twice

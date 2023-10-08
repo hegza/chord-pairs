@@ -19,13 +19,13 @@ pub enum Chord {
     G3Minor,
     A3Minor,
     B3Minor,
-    C4,
-    D4,
-    E4,
-    F4,
-    G4,
-    A4,
-    B4,
+    C4Minor,
+    D4Minor,
+    E4Minor,
+    F4Minor,
+    G4Minor,
+    A4Minor,
+    B4Minor,
 }
 
 impl fmt::Display for Chord {
@@ -38,13 +38,13 @@ impl fmt::Display for Chord {
             Chord::G3Minor => write!(f, "G3 minor"),
             Chord::A3Minor => write!(f, "A3 minor"),
             Chord::B3Minor => write!(f, "B3 minor"),
-            Chord::C4 => write!(f, "C4"),
-            Chord::D4 => write!(f, "D4"),
-            Chord::E4 => write!(f, "E4"),
-            Chord::F4 => write!(f, "F4"),
-            Chord::G4 => write!(f, "G4"),
-            Chord::A4 => write!(f, "A4"),
-            Chord::B4 => write!(f, "B4"),
+            Chord::C4Minor => write!(f, "C4 minor"),
+            Chord::D4Minor => write!(f, "D4 minor"),
+            Chord::E4Minor => write!(f, "E4 minor"),
+            Chord::F4Minor => write!(f, "F4 minor"),
+            Chord::G4Minor => write!(f, "G4 minor"),
+            Chord::A4Minor => write!(f, "A4 minor"),
+            Chord::B4Minor => write!(f, "B4 minor"),
         }
     }
 }
@@ -58,13 +58,13 @@ pub fn pitches(chord: Chord) -> [f32; 3] {
         Chord::G3Minor => 196.,
         Chord::A3Minor => 220.,
         Chord::B3Minor => 246.94,
-        Chord::C4 => 261.,
-        Chord::D4 => 294.,
-        Chord::E4 => 329.,
-        Chord::F4 => 349.,
-        Chord::G4 => 392.,
-        Chord::A4 => 440.,
-        Chord::B4 => 493.,
+        Chord::C4Minor => 261.,
+        Chord::D4Minor => 294.,
+        Chord::E4Minor => 329.,
+        Chord::F4Minor => 349.,
+        Chord::G4Minor => 392.,
+        Chord::A4Minor => 440.,
+        Chord::B4Minor => 493.,
     };
     [base, base * 32.0 / 27.0, base * 3.0 / 2.0]
 }
