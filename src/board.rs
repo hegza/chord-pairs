@@ -75,12 +75,10 @@ impl Default for Board {
                 basenote: note,
                 kind: ChordKind::Minor,
             })
-            // TODO: majors are not working yet
-            /*
             .chain(Note::iter().map(|note| Chord {
                 basenote: note,
                 kind: ChordKind::Major,
-            }))*/
+            }))
             .collect::<Vec<_>>();
         let all_chords_twice = all_chords.iter().cycle().take(all_chords.len() * 2);
         let mut cards = all_chords_twice
