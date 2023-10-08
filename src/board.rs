@@ -68,9 +68,14 @@ pub enum PlayerAction {
     LookAt(usize),
 }
 
-impl Default for Board {
-    fn default() -> Self {
-        let all_chords = Note::iter()
+pub enum PairCount {
+    Max,
+    N(usize),
+}
+
+impl Board {
+    pub fn new(pair_count: PairCount) -> Self {
+        let all_chords_iter = Note::iter()
             .map(|note| Chord {
                 basenote: note,
                 kind: ChordKind::Minor,
@@ -78,8 +83,13 @@ impl Default for Board {
             .chain(Note::iter().map(|note| Chord {
                 basenote: note,
                 kind: ChordKind::Major,
-            }))
-            .collect::<Vec<_>>();
+            }));
+
+        let all_chords = match pair_count {
+            PairCount::Max => all_chords_iter.collect::<Vec<_>>(),
+            PairCount::N(n) => all_chords_iter.take(n).collect::<Vec<_>>(),
+        };
+
         let all_chords_twice = all_chords.iter().cycle().take(all_chords.len() * 2);
         let mut cards = all_chords_twice
             .map(|chord| Card {
@@ -95,9 +105,7 @@ impl Default for Board {
             guess_state: GuessState::None,
         }
     }
-}
 
-impl Board {
     pub fn update(&mut self, ui: &mut egui::Ui, audio: &ChordPlayer) {
         if let Some(action) = self.ui(ui) {
             match action {

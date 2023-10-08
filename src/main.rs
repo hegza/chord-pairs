@@ -25,7 +25,7 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-        let board = Board::default();
+        let board = Board::new(board::PairCount::Max);
         let audio = ChordPlayer::from_chords(board.chords().into_iter());
 
         Self { board, audio }
