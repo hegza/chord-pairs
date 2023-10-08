@@ -530,6 +530,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "chord-pairs"
+version = "0.1.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "fon",
+ "num-integer",
+ "rand",
+ "rodio",
+ "twang",
+]
+
+[[package]]
 name = "clang-sys"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2245,19 +2258,6 @@ checksum = "64a4a911eed85daf18834cfaa86a79b7d266ff93ff5ba14005426219480ed662"
 dependencies = [
  "libc",
  "winapi",
-]
-
-[[package]]
-name = "sounds"
-version = "0.1.0"
-dependencies = [
- "eframe",
- "egui",
- "fon",
- "num-integer",
- "rand",
- "rodio",
- "twang",
 ]
 
 [[package]]
