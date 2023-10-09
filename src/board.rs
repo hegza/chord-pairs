@@ -68,6 +68,7 @@ pub enum PlayerAction {
     LookAt(usize),
 }
 
+#[derive(Clone)]
 pub enum PairCount {
     Max,
     N(usize),
