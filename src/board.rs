@@ -16,17 +16,9 @@ const BTN_SIZE: Vec2 = Vec2::new(100., 100.);
 
 impl Card {
     /// Returns clicked
-    fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
-        let text = match state {
-            CardState::FaceDown => "?".to_owned(),
-            CardState::FaceUp => "o".to_owned(),
-            CardState::Revealed => format!("{}", self.chord),
-        };
-        let color = match state {
-            CardState::FaceDown => Color32::LIGHT_RED,
-            CardState::FaceUp => Color32::LIGHT_BLUE,
-            CardState::Revealed => Color32::LIGHT_GREEN,
-        };
+    pub fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
+        let text = self.text(state);
+        let color = self.color(state);
         ui.add(
             Button::new(text)
                 .min_size(BTN_SIZE)
@@ -34,6 +26,21 @@ impl Card {
                 .fill(Color32::DARK_GRAY),
         )
         .clicked()
+    }
+
+    fn text(&self, state: &CardState) -> String {
+        match state {
+            CardState::FaceDown => "?".to_owned(),
+            CardState::FaceUp => "o".to_owned(),
+            CardState::Revealed => format!("{}", self.chord),
+        }
+    }
+    fn color(&self, state: &CardState) -> Color32 {
+        match state {
+            CardState::FaceDown => Color32::LIGHT_RED,
+            CardState::FaceUp => Color32::LIGHT_BLUE,
+            CardState::Revealed => Color32::LIGHT_GREEN,
+        }
     }
 }
 
