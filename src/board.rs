@@ -45,7 +45,7 @@ impl Card {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum CardState {
+pub enum CardState {
     FaceDown,
     FaceUp,
     /// Also show chord
