@@ -18,12 +18,12 @@ impl Card {
     /// Returns clicked
     pub fn button_ui(&self, state: &CardState, ui: &mut egui::Ui) -> bool {
         let text = self.text(state);
-        let color = self.color(state);
+        let color = self.stroke_color(state);
         ui.add(
             Button::new(text)
                 .min_size(BTN_SIZE)
                 .stroke(Stroke::new(2., color))
-                .fill(Color32::DARK_GRAY),
+                .fill(self.fill_color(state)),
         )
         .clicked()
     }
@@ -35,12 +35,15 @@ impl Card {
             CardState::Revealed => format!("{}", self.chord),
         }
     }
-    fn color(&self, state: &CardState) -> Color32 {
+    fn stroke_color(&self, state: &CardState) -> Color32 {
         match state {
             CardState::FaceDown => Color32::LIGHT_RED,
             CardState::FaceUp => Color32::LIGHT_BLUE,
             CardState::Revealed => Color32::LIGHT_GREEN,
         }
+    }
+    fn fill_color(&self, _state: &CardState) -> Color32 {
+        Color32::DARK_GRAY
     }
 }
 
