@@ -36,7 +36,7 @@ pub enum ChordKind {
 }
 
 impl Note {
-    pub fn freq(&self) -> f64 {
+    pub fn freq(&self) -> f32 {
         match self {
             Note::C3 => 130.81,
             Note::D3 => 146.83,
@@ -73,22 +73,7 @@ impl fmt::Display for Chord {
 }
 
 pub fn get_chord(note: Note, chord_kind: ChordKind) -> [f32; 3] {
-    let base = match note {
-        Note::C3 => 130.81,
-        Note::D3 => 146.83,
-        Note::E3 => 164.81,
-        Note::F3 => 174.61,
-        Note::G3 => 196.,
-        Note::A3 => 220.,
-        Note::B3 => 246.94,
-        Note::C4 => 261.,
-        Note::D4 => 294.,
-        Note::E4 => 329.,
-        Note::F4 => 349.,
-        Note::G4 => 392.,
-        Note::A4 => 440.,
-        Note::B4 => 493.,
-    };
+    let base = note.freq();
     match chord_kind {
         ChordKind::Minor => [base, base * 32.0 / 27.0, base * 3.0 / 2.0],
         ChordKind::Major => [base, base * 5. / 4., base * 3.0 / 2.0],
