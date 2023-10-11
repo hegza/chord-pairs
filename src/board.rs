@@ -117,49 +117,51 @@ impl Board {
         }
     }
 
+    fn look_at_card(&mut self, card_idx: usize, audio: &ChordPlayer) {
+        if let Some(card) = &self.cards[card_idx].0 {
+            // Play sound
+            audio.play_chord(&card.chord);
+
+            match self.guess_state {
+                // This is the first guess, set current as open
+                GuessState::None => {
+                    self.cards[card_idx].1 = CardState::FaceUp;
+                    self.guess_state = GuessState::One(card_idx);
+                }
+                // This is the second guess
+                GuessState::One(first_guess_idx) => {
+                    if let Some(first_card) = &self.cards[first_guess_idx].0 {
+                        // Guess right
+                        if &first_card.chord == &card.chord
+                            && self.guess_state != GuessState::One(card_idx)
+                        {
+                            // Set both as revealed
+                            self.cards[card_idx].1 = CardState::Revealed;
+                            self.cards[first_guess_idx].1 = CardState::Revealed;
+                        }
+                        // Wrong guess
+                        else {
+                            // Close both and add one to wrong guess count
+                            self.cards[card_idx].1 = CardState::FaceDown;
+                            self.cards[first_guess_idx].1 = CardState::FaceDown;
+                            self.wrong_guess_count += 1;
+                        }
+                        self.guess_state = GuessState::None;
+                    }
+                }
+            }
+        } else {
+            eprintln!(
+                "player tried to look at card {} which didn't exist",
+                card_idx
+            );
+        }
+    }
+
     pub fn update(&mut self, ui: &mut egui::Ui, audio: &ChordPlayer) {
         if let Some(action) = self.ui(ui) {
             match action {
-                PlayerAction::LookAt(card_idx) => {
-                    if let Some(card) = &self.cards[card_idx].0 {
-                        // Play sound
-                        audio.play_chord(&card.chord);
-
-                        match self.guess_state {
-                            // This is the first guess, set current as open
-                            GuessState::None => {
-                                self.cards[card_idx].1 = CardState::FaceUp;
-                                self.guess_state = GuessState::One(card_idx);
-                            }
-                            // This is the second guess
-                            GuessState::One(first_guess_idx) => {
-                                if let Some(first_card) = &self.cards[first_guess_idx].0 {
-                                    // Guess right
-                                    if &first_card.chord == &card.chord
-                                        && self.guess_state != GuessState::One(card_idx)
-                                    {
-                                        // Set both as revealed
-                                        self.cards[card_idx].1 = CardState::Revealed;
-                                        self.cards[first_guess_idx].1 = CardState::Revealed;
-                                    }
-                                    // Wrong guess
-                                    else {
-                                        // Close both and add one to wrong guess count
-                                        self.cards[card_idx].1 = CardState::FaceDown;
-                                        self.cards[first_guess_idx].1 = CardState::FaceDown;
-                                        self.wrong_guess_count += 1;
-                                    }
-                                    self.guess_state = GuessState::None;
-                                }
-                            }
-                        }
-                    } else {
-                        eprintln!(
-                            "player tried to look at card {} which didn't exist",
-                            card_idx
-                        );
-                    }
-                }
+                PlayerAction::LookAt(card_idx) => self.look_at_card(card_idx, audio),
             }
         }
     }
